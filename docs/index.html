@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>温馨提醒</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #f0f0f0;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        
+        .tip-window {
+            position: absolute;
+            width: 250px;
+            height: 60px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 1000;
+            cursor: pointer;
+            transition: transform 0.3s, opacity 0.3s;
+        }
+        
+        .tip-window:hover {
+            transform: scale(1.05);
+        }
+        
+        .tip-content {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        #control-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 2000;
+            text-align: center;
+        }
+        
+        #stop-btn {
+            background-color: #ff4757;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+        
+        #stop-btn:hover {
+            background-color: #ff3742;
+        }
+        
+        #counter {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div id="windows-container"></div>
+    
+    <div id="control-panel">
+        <button id="stop-btn">停止弹窗 (Ctrl+Alt+Q)</button>
+        <div id="counter">当前弹窗数: 0</div>
+    </div>
+
+    <script>
+        // 配置参数
+        const CONFIG = {
+            MAX_WINDOWS: 50,        // 最大窗口数量
+            CREATE_INTERVAL: 500,   // 创建间隔(毫秒)
+            TIP_DURATION: 10000     // 提示窗口显示时间(毫秒)
+        };
+
+        // 温馨提示语
+        const TIPS = [
+            '我想你了', 
+            '今天过得开心嘛', 
+            '期待和你见面', 
+            '顺顺利利', 
+            '早点休息', 
+            '天冷了,多穿衣服', 
+            '今天有想我嘛',
+            '要好好照顾自己',
+            '记得按时吃饭',
+            '工作别太累',
+            '想你的一天',
+            '愿你每天都有好心情'
+        ];
+
+        // 背景颜色
+        const BG_COLORS = [
+            '#ffb6c1', '#87ceeb', '#98fb98', '#e6e6fa', 
+            '#fffacd', '#dda0dd', '#ff7f50', '#ffe4c4', 
+            '#fff0f5', '#fdf5e6', '#f0fff0', '#f5f5dc'
+        ];
+
+        // 全局变量
+        let isRunning = true;
+        let windowCount = 0;
+        let windows = [];
+        let creationTimer = null;
+
+        // 创建提示窗口
+        function createTipWindow() {
+            if (!isRunning || windowCount >= CONFIG.MAX_WINDOWS) {
+                return;
+            }
+
+            const container = document.getElementById('windows-container');
+            const windowElement = document.createElement('div');
+            windowElement.className = 'tip-window';
+            
+            // 随机位置
+            const x = Math.random() * (window.innerWidth - 250);
+            const y = Math.random() * (window.innerHeight - 60);
+            windowElement.style.left = `${x}px`;
+            windowElement.style.top = `${y}px`;
+            
+            // 随机背景颜色
+            const randomColor = BG_COLORS[Math.floor(Math.random() * BG_COLORS.length)];
+            windowElement.style.backgroundColor = randomColor;
+            
+            // 随机提示语
+            const randomTip = TIPS[Math.floor(Math.random() * TIPS.length)];
+            windowElement.innerHTML = `<div class="tip-content">${randomTip}</div>`;
+            
+            // 添加到容器
+            container.appendChild(windowElement);
+            windows.push(windowElement);
+            windowCount++;
+            updateCounter();
+            
+            // 点击关闭
+            windowElement.addEventListener('click', function() {
+                closeWindow(this);
+            });
+            
+            // 自动关闭
+            setTimeout(() => {
+                closeWindow(windowElement);
+            }, CONFIG.TIP_DURATION);
+        }
+
+        // 关闭窗口
+        function closeWindow(windowElement) {
+            if (windowElement.parentNode) {
+                windowElement.style.opacity = '0';
+                windowElement.style.transform = 'scale(0.8)';
+                
+                setTimeout(() => {
+                    if (windowElement.parentNode) {
+                        windowElement.parentNode.removeChild(windowElement);
+                        const index = windows.indexOf(windowElement);
+                        if (index > -1) {
+                            windows.splice(index, 1);
+                        }
+                        windowCount--;
+                        updateCounter();
+                    }
+                }, 300);
+            }
+        }
+
+        // 更新计数器
+        function updateCounter() {
+            document.getElementById('counter').textContent = `当前弹窗数: ${windowCount}`;
+        }
+
+        // 停止所有弹窗
+        function stopAllWindows() {
+            isRunning = false;
+            clearInterval(creationTimer);
+            
+            // 逐步关闭所有窗口
+            function closeNextWindow() {
+                if (windows.length > 0) {
+                    closeWindow(windows[0]);
+                    setTimeout(closeNextWindow, 50);
+                }
+            }
+            
+            closeNextWindow();
+            
+            document.getElementById('stop-btn').textContent = '已停止';
+            document.getElementById('stop-btn').style.backgroundColor = '#999';
+            document.getElementById('stop-btn').disabled = true;
+        }
+
+        // 键盘快捷键
+        document.addEventListener('keydown', function(event) {
+            if (event.ctrlKey && event.altKey && (event.key === 'q' || event.key === 'Q')) {
+                stopAllWindows();
+            }
+        });
+
+        // 初始化
+        function init() {
+            // 开始创建窗口
+            creationTimer = setInterval(createTipWindow, CONFIG.CREATE_INTERVAL);
+            
+            // 停止按钮事件
+            document.getElementById('stop-btn').addEventListener('click', stopAllWindows);
+            
+            // 初始创建几个窗口
+            for (let i = 0; i < 3; i++) {
+                setTimeout(createTipWindow, i * 300);
+            }
+        }
+
+        // 页面加载完成后初始化
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
